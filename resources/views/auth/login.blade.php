@@ -1,0 +1,2 @@
+@extends('layouts.app')
+@section('content')<section class="auth-card"><p class="eyebrow">POS SYSTEM / WORKSPACE</p><h1>Welcome back.</h1><form method="post" action="/login">@csrf<label>Email address<input type="email" name="email" required value="{{ old('email') }}" autocomplete="email"></label><label>Password<input type="password" name="password" required autocomplete="current-password"></label><button>Sign in →</button></form><p><a href="/register">Create a new business</a></p></section>@endsection

@@ -1,0 +1,66 @@
+services:
+  app:
+    build:
+      context: .
+      target: app
+    env_file: .env
+    environment: &runtime
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_DATABASE: pos
+      DB_USERNAME: pos
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      REDIS_HOST: redis
+    volumes:
+      - storage:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+  web:
+    build:
+      context: .
+      target: web
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on: [app]
+  queue:
+    build:
+      context: .
+      target: app
+    env_file: .env
+    environment: *runtime
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=60
+    volumes:
+      - storage:/var/www/html/storage
+    depends_on: [app]
+  scheduler:
+    build:
+      context: .
+      target: app
+    env_file: .env
+    environment: *runtime
+    command: php artisan schedule:work
+    volumes:
+      - storage:/var/www/html/storage
+    depends_on: [app]
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: pos
+      POSTGRES_USER: pos
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pos"]
+      interval: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+volumes:
+  database:
+  storage:
